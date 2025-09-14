@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Maison Blanche</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Text:ital,wght@0,400..800;1,400..800&display=swap" rel="stylesheet">
+    <!-- <link rel="stylesheet" href="style.css"> -->
+</head>
+<body>
+
+    <div id="loader-wrapper">
+        <div class="container"></div>
+    </div>
+
+    <header>
+        <div class="header-left">
+            <img src="Images/logo.png" alt="La Maison Blanche Logo" style="width:50px;height:50px;">
+            <h3> La Maison Blanche</h3>
+        </div>
+        <div class="header-right">
+            <nav>
+                <ul>
+                    <li><a href="index.html">Accueil</a></li>
+                    <li><a href="notre-maison.html">Notre maison</a></li>
+                    <li><a href="#">Activités</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </nav>
+            <div class="button-container">
+                <a href="booking-engine.html" class="header-button">Réserver</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="main-banner">
+            <img src="Images/maison1.avif" alt="Maison de campagne à l'île d'Orléans" class="banner-image">
+            <div class="banner-content">
+                <h1>Maison de campagne à l'Ile d'Orléans</h1>
+                <h2>Une magnifique maison offrant un environnement spacieux et invitant au coeur de la nature, à proximité du Vieux-Québec et de plusieurs stations de ski réputées.</h2>
+                <button class="banner-button">Découvrir</button>
+            </div>
+        </div>
+    </main>
+
+    <section class="features-section">
+        <div class="features-container">
+            <div class="feature-item">
+                <img src="https://cdn-icons-png.flaticon.com/512/929/929566.png" alt="Icône d'étoile" class="feature-icon">
+                <h3>Spacieuse et moderne</h3>
+                <p>La maison, récemment rénovée, dispose d'une cuisine neuve et bien équipée, d'un grand espace salon et salle à manger, de 3 chambres, de 2 salles de bains, de 2 terrasses extérieures et d'un grand terrain semi-boisé et très tranquille.</p>
+            </div>
+            <div class="feature-item">
+                <img src="https://i.pinimg.com/474x/fe/e5/80/fee580f68f80bb38ae6ca66494eb6d0c.jpg" alt="Icône d'avion" class="feature-icon">
+                <h3>Idéalement située</h3>
+                <p>Située à seulement 15 minutes du Vieux-Québec et à 30 minutes des stations de ski de Stoneham, du Relais et du Mont Sainte-Anne, La Maison Blanche vous permettra de découvrir la région dans un environnement spacieux et invitant.</p>
+            </div>
+            <div class="feature-item">
+                <img src="https://cdn.creazilla.com/emojis/46196/wine-glass-emoji-clipart-xl.png" alt="Icône de vin" class="feature-icon">
+                <h3>Un service irréprochable</h3>
+                <p>La maison dispose d'un internet haut débit, d'une grande télévision, d'une table de baby-foot et d'une table de ping-pong. Elle est également équipée de tous les essentiels pour la cuisine (épices, huile, vinaigre...)</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="image-gallery">
+        <div class="image-viewer">
+            <img id="gallery-image" src="Images/viewer/image1.png" alt="Gallery image">
+        </div>
+    </section>
+
+    <section id="renovation-section">
+        <div class="renovation-container">
+            <h2 class="renovation-heading">Maison récemment rénovée</h2>
+            <p class="renovation-description">La Maison Blanche a récemment été refaite de fond en comble: un nouveau toit, des filtres à eau modernes, des meubles neufs dans toute les pièces et bien plus encore. Ainsi, votre séjour dans notre maison sera aussi confortable que possible.</p>
+        </div>
+    </section>
+
+    <section id="photo-gallery">
+        <div class="gallery-grid">
+            <img src="Images/imageA1.jpeg" alt="Interior dining and living area">
+            <img src="Images/imageA2.jpeg" alt="Exterior shot of the house from front">
+            <img src="Images/imageA3.jpeg" alt="Outdoor fire pit and seating area">
+            <img src="Images/imageA4.jpeg" alt="Exterior shot of the house with deck">
+            <img src="Images/imageA5.jpeg" alt="Driveway leading to the house">
+            <img src="Images/imageA6.jpeg" alt="Another interior view">
+        </div>
+    </section>
+
+    <footer class="body">
+        <p>&copy; 2025 La Maison Blanche par Location Espace Sélect.</p>
+        <a href="terms.html" class="text-black hover:bg-gray-300">Termes et conditions</a> <a href="privacy.html" class="text-black hover:bg-gray-300">Politique de confidentialité</a>
+    </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const galleryImage = document.getElementById('gallery-image');
+            const totalImages = 10;
+            let currentImageIndex = 1;
+
+            function changeImage() {
+                galleryImage.classList.remove('slide-in');
+                void galleryImage.offsetWidth;
+                
+                currentImageIndex = (currentImageIndex % totalImages) + 1;
+                galleryImage.src = `Images/viewer/image${currentImageIndex}.png`;
+                galleryImage.classList.add('slide-in');
+            }
+
+            setInterval(changeImage, 4000);
+        });
+
+        window.addEventListener('load', function() {
+            const loaderWrapper = document.getElementById('loader-wrapper');
+            loaderWrapper.style.transition = 'opacity 1s ease';
+            loaderWrapper.style.opacity = 1;
+            setTimeout(() => {
+                loaderWrapper.style.display = 'none';
+            }, 1000);
+
+            const navLinks = document.querySelectorAll('nav ul li a');
+            const currentPath = window.location.pathname.split('/').pop();
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active-page');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

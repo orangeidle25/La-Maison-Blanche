@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Engine</title>
+    <!-- Tailwind CSS for utility classes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Text:ital,wght@0,400..800;1,400..800&display=swap" rel="stylesheet">
+    
+    <!-- Square Web Payments SDK -->
+    <script type="text/javascript" src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
+
+    <style>
+        body {
+            font-family: 'Wix Madefor Text', sans-serif;
+            background-color: white;
+        }
+        header {
+            background-color: #000;
+            color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-left, .header-right {
+            display: flex;
+            align-items: center;
+        }
+        .header-left h3 {
+            margin-left: 10px;
+            color: #fff;
+        }
+        nav ul {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        nav ul li {
+            margin-right: 20px;
+        }
+        nav ul li a {
+            text-decoration: none;
+            color: #ccc;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        nav ul li a:hover {
+            color: #fff;
+        }
+        .header-button {
+            background-color: #fff;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .header-button:hover {
+            background-color: #f3f3f3;
+        }
+        #loader-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease-in-out;
+            opacity: 1;
+        }
+        .loader {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #000;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .active-page {
+            color: #fff;
+            border-bottom: 2px solid #fff;
+        }
+        
+        .invisible {
+            opacity: 0;
+            height: 0;
+            overflow: hidden;
+            pointer-events: none;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .visible {
+            opacity: 1;
+            height: auto;
+            overflow: visible;
+            pointer-events: auto;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .calendar-day.selected {
+            background-color: #000;
+            color: #fff;
+            border-radius: 0.5rem;
+        }
+
+        .calendar-day.in-range {
+            background-color: #e5e7eb;
+            color: #000;
+        }
+        .calendar-day.start-date {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+        .calendar-day.end-date {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #d1d5db; /* A slightly darker gray */
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background-color: #f3f4f6;
+        }
+
+        /* Square payment form styles */
+        #card-container .sq-input {
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            background-color: #f9fafb;
+            font-family: 'Wix Madefor Text', sans-serif;
+        }
+        #card-container .sq-input.is-valid {
+             border-color: #10B981; /* green-500 */
+        }
+        #card-container .sq-input.is-invalid {
+            border-color: #EF4444; /* red-500 */
+        }
+
+        #apple-pay-button {
+            height: 44px;
+            display: inline-block;
+            background-image: -webkit-named-image(apple-pay-logo-white);
+            background-position: 50% 50%;
+            background-repeat: no-repeat;
+            background-size: 100% auto;
+            border-radius: 5px;
+            padding: 0px;
+            box-sizing: border-box;
+            background-color: black;
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <div id="loader-wrapper">
+        <div class="loader"></div>
+    </div>
+    <header>
+        <div class="header-left">
+            <img src="https://placehold.co/50x50/000000/FFFFFF?text=Logo" alt="La Maison Blanche Logo" style="width:50px;height:50px;">
+            <h3> La Maison Blanche</h3>
+        </div>
+        <div class="header-right">
+            <nav>
+                <ul>
+                    <li><a href="#">Accueil</a></li>
+                    <li><a href="#">Notre maison</a></li>
+                    <li><a href="#">Activités</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </nav>
+            <div class="button-container">
+                <a href="#" class="header-button">Réserver</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex items-start justify-center p-4">
+        
+        <!-- Main Container -->
+        <div class="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 p-4 md:p-8">
+            
+            <!-- Reservation & Cart Section (Left Side) -->
+            <div id="cart-container" class="lg:w-1/3 bg-white p-6 rounded-lg shadow-lg order-2 lg:order-1 sticky top-6 custom-scrollbar max-h-[85vh] overflow-y-auto">
+                <h3 class="text-xl font-bold mb-4">Réservation</h3>
+                <div class="space-y-4 text-gray-700 text-sm">
+                    <div id="cart-message" class="text-gray-500 text-center py-8">
+                        Veuillez ajouter quelque chose dans votre panier.
+                    </div>
+                    <div id="booking-dates-summary" class="hidden">
+                        <p class="mb-1"><span class="font-semibold">Date d'arrivée:</span> <span id="cart-arrival-date"></span></p>
+                        <p><span class="font-semibold">Date de départ:</span> <span id="cart-departure-date"></span></p>
+                    </div>
+                    <div id="booking-details-summary" class="hidden">
+                        <p><span id="cart-guests-text"></span></p>
+                        <div class="flex items-center gap-2 mt-2">
+                            <img src="https://placehold.co/80x80/cccccc/333333?text=Maison" alt="Maison de campagne" class="w-16 h-16 rounded object-cover">
+                            <div>
+                                <h4 class="font-semibold">Maison de campagne, 3 chambres, 6 personnes</h4>
+                                <p class="text-xs text-gray-500">Location</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="cart-total-summary" class="hidden">
+                        <hr class="my-4 border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium">Sous-total</span>
+                            <span id="cart-subtotal" class="text-sm font-medium">0.00 C$</span>
+                        </div>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-sm font-medium">Dépôt de garantie <span class="text-gray-500">(Remboursable plus tard)</span></span>
+                            <span id="cart-deposit" class="text-sm font-medium">0.00 C$</span>
+                        </div>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-sm font-medium">Frais de nettoyage</span>
+                            <span id="cart-cleaning-fee" class="text-sm font-medium">0.00 C$</span>
+                        </div>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-sm font-medium">Taxe d'hébergement<span class="text-gray-500">(3.5%)</span></span>
+                            <span id="cart-tax" class="text-sm font-medium">0.00 C$</span>
+                        </div>
+                        <hr class="my-4 border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium">Total</span>
+                            <span id="cart-total" class="font-bold text-lg">0.00 C$</span>
+                        </div>
+                        <div class="flex justify-between items-center mt-2 text-sm text-gray-600">
+                            <span>Montant à payer maintenant:</span>
+                            <span id="cart-upfront-payment" class="font-bold">0.00 C$</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Vous payez ce montant maintenant. Le reste sera dû plus tard</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <h4 class="font-semibold text-gray-700">Ajouter un code promo</h4>
+                    <div class="flex items-center mt-2 gap-2">
+                        <input type="text" id="promo-code" placeholder="Entrez le code" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300">
+                        <button id="apply-promo-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">Appliquer</button>
+                    </div>
+                </div>
+
+                <button id="continue-btn" class="w-full bg-gray-900 text-white py-3 rounded-lg font-semibold mt-6 hover:bg-gray-800 transition-colors duration-300" disabled>Continuer</button>
+            </div>
+
+            <!-- Options & Details Section (Right Side) -->
+            <div id="right-side-container" class="lg:w-2/3 order-1 lg:order-2">
+                <div id="options-section" class="space-y-6 visible">
+                    
+                    <!-- Search Bar -->
+                    <div class="bg-white p-4 rounded-lg shadow-lg flex flex-col md:flex-row gap-4 items-stretch border border-gray-200">
+                        <div class="relative w-full md:w-1/2">
+                            <input type="text" id="date-range-input" class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 cursor-pointer" placeholder="Sélectionnez vos dates" readonly>
+                            <div id="calendar-popup" class="absolute z-10 bg-white p-4 rounded-lg shadow-xl mt-2 hidden">
+                                <div id="calendar-body"></div>
+                            </div>
+                        </div>
+                        <div class="relative w-full md:w-1/2">
+                            <div id="guests-select" class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 flex items-center justify-between cursor-pointer">
+                                <span id="guests-summary">1 adulte, 0 enfant</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div id="guests-popup" class="absolute z-10 bg-white p-4 rounded-lg shadow-xl mt-2 hidden">
+                                <div class="flex flex-col gap-4 text-gray-900">
+                                    <div class="flex justify-between items-center">
+                                        <span>Adultes (Max 6) </span>
+                                        <div class="flex items-center gap-2">
+                                            <button class="adults-minus px-2 py-1 bg-gray-200 rounded-full hover:bg-gray-300">-</button>
+                                            <span id="adults-count">1</span>
+                                            <button class="adults-plus px-2 py-1 bg-gray-200 rounded-full hover:bg-gray-300">+</button>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span>Enfants (Max 5) </span>
+                                        <div class="flex items-center gap-2">
+                                            <button class="kids-minus px-2 py-1 bg-gray-200 rounded-full hover:bg-gray-300">-</button>
+                                            <span id="kids-count">0</span>
+                                            <button class="kids-plus px-2 py-1 bg-gray-200 rounded-full hover:bg-gray-300">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- House Card -->
+                    <div id="house-card" class="bg-white p-6 rounded-lg shadow-lg flex flex-col md:flex-row gap-6">
+                        <img src="https://placehold.co/400x300/cccccc/333333?text=Maison" alt="Maison de campagne" class="w-full md:w-1/3 rounded-lg object-cover">
+                        <div class="flex flex-col justify-between md:w-2/3">
+                            <div class="space-y-2">
+                                <h2 class="text-2xl font-bold">Maison de campagne, 3 chambres, 6 personnes</h2>
+                                <p class="text-gray-600">Maison idéale pour 6 personnes.</p>
+                                <div class="flex items-center text-gray-500 space-x-4">
+                                    <div class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+                                        </svg>
+                                        <span>6 Adultes</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M4 4a2 2 0 012-2h4a2 2 0 012 2v2h4a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6a2 2 0 012-2h4V4z" />
+                                        </svg>
+                                        <span>3 chambres</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mt-4 md:mt-0 gap-4">
+                                <div class="text-xl font-bold">
+                                    <span id="house-price-display">0.00 C$</span>/nuit
+                                </div>
+                                <button id="add-to-cart-btn" class="bg-gray-900 text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-800 transition-colors duration-300 transform active:scale-95 disabled:bg-gray-600">Ajouter au panier</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Section -->
+                <section id="form-section" class="invisible">
+                    <h2 class="text-2xl font-bold mb-6">Vos détails</h2>
+                    <form id="booking-form" class="space-y-6">
+                        <!-- Contact Information -->
+                        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                            <h3 class="text-lg font-semibold mb-4">Informations de contact</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="firstName" class="block text-sm font-medium text-gray-700">Prénom *</label>
+                                    <input type="text" id="firstName" name="firstName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500" required>
+                                </div>
+                                <div>
+                                    <label for="lastName" class="block text-sm font-medium text-gray-700">Nom *</label>
+                                    <input type="text" id="lastName" name="lastName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500" required>
+                                </div>
+                                <div>
+                                    <label for="email" class="block text-sm font-medium text-gray-700">Courriel *</label>
+                                    <input type="email" id="email" name="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500" required>
+                                </div>
+                                <div>
+                                    <label for="phone" class="block text-sm font-medium text-gray-700">Téléphone *</label>
+                                    <input type="tel" id="phone" name="phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-border-gray-500 focus:ring-gray-500" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Address Information -->
+                        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                            <h3 class="text-lg font-semibold mb-4">Adresse</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="md:col-span-2">
+                                    <label for="street" class="block text-sm font-medium text-gray-700">Rue *</label>
+                                    <input type="text" id="street" name="street" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500" required>
+                                </div>
+                                <div>
+                                    <label for="city" class="block text-sm font-medium text-gray-700">Ville *</label>
+                                    <input type="text" id="city" name="city" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500" required>
+                                </div>
+                                <div>
+                                    <label for="province" class="block text-sm font-medium text-gray-700">Province / État *</label>
+                                    <input type="text" id="province" name="province" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500" required>
+                                </div>
+                                <div>
+                                    <label for="postalCode" class="block text-sm font-medium text-gray-700">Code postal *</label>
+                                    <input type="text" id="postalCode" name="postalCode" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500" required>
+                                </div>
+                                <div>
+                                    <label for="country" class="block text-sm font-medium text-gray-700">Pays *</label>
+                                    <select id="country" name="country" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500" required>
+                                        <option value="">Sélectionnez un pays</option>
+                                        <option value="CA">Canada</option>
+                                        <option value="FR">France</option>
+                                        <option value="US">États-Unis</option>
+                                        <option value="UK">Royaume-Uni</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Special Demands -->
+                        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                            <h3 class="text-lg font-semibold mb-4">Demandes spéciales</h3>
+                            <div>
+                                <label for="specialRequests" class="block text-sm font-medium text-gray-700">Demandes particulières (facultatif)</label>
+                                <textarea id="specialRequests" name="specialRequests" rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"></textarea>
+                            </div>
+                        </div>
+                        <div class="mt-8 text-center">
+                            <p class="text-sm text-gray-500 mb-4">
+                                En choisissant de compléter cette réservation, je reconnais avoir lu et accepté les règlements et restrictions. 
+                                <a href="#" class="text-gray-600 hover:underline">Termes et conditions</a> et 
+                                <a href="#" class="text-gray-600 hover:underline">Confidentialité et modalités</a>.
+                            </p>
+                            <button type="submit" form="booking-form" class="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-300 transform active:scale-95">Continuer vers le paiement</button>
+                        </div>
+                    </form>
+                </section>
+                
+                <!-- Payment Section -->
+                <section id="payment-section" class="invisible">
+                    <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                        <h2 class="text-2xl font-bold mb-4">Paiement</h2>
+                        <div class="text-center mb-6">
+                            <p class="text-lg text-gray-700">Montant à payer maintenant:</p>
+                            <p class="text-3xl font-bold text-gray-900" id="payment-amount">0.00 C$</p>
+                        </div>
+                        
+                        <!-- The Square payment form and button -->
+                        <div id="payment-form">
+                            <!-- Payment status messages will be displayed here -->
+                            <div id="payment-status-container" class="text-center text-sm font-medium text-red-500 hidden"></div>
+                            
+                            <!-- Card payment form -->
+                            <div id="card-container"></div>
+                            <button id="card-button" type="button" class="w-full bg-gray-900 text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition-colors duration-300 transform active:scale-95 mt-4">
+                                Payer par carte
+                            </button>
+                        </div>
+                        
+                        <!-- Apple Pay button -->
+                        <div id="apple-pay-button-container" class="hidden mt-4">
+                            <button id="apple-pay-button" class="w-full"></button>
+                        </div>
+                    </div>
+                    <!-- Added Powered by Square logo below the form -->
+                    <div class="mt-6 text-center flex flex-col items-center">
+                        <a href="https://squareup.com/payments" target="_blank" class="inline-block mt-2">
+                            <img src="https://placehold.co/150x50/ffffff/000000?text=Square+Logo" alt="Square Payments Logo" class="w-[150px] h-[50px] object-contain">
+                        </a>
+                    </div>
+                </section>
+
+            </div>
+            
+            <!-- Booking Confirmation Modal -->
+            <div id="modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden">
+                <div class="bg-white p-8 rounded-lg shadow-xl text-center max-w-sm w-full">
+                    <h3 class="text-2xl font-bold mb-4">Réservation Confirmée!</h3>
+                    <p class="text-gray-600">
+                        Merci pour votre réservation. Votre paiement a été traité avec succès.
+                    </p>
+                    <button id="modal-close-btn" class="mt-6 bg-gray-900 text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-800">Fermer</button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script type="module">
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // Function to handle the loader
+            const loaderWrapper = document.getElementById('loader-wrapper');
+            const toggleLoader = (show) => {
+                loaderWrapper.style.opacity = show ? 1 : 0;
+                loaderWrapper.style.pointerEvents = show ? 'auto' : 'none';
+            };
+
+            // Function to get a cookie
+            const getCookie = (name) => {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+                return null;
+            };
+
+            // Function to set a cookie
+            const setCookie = (name, value, days) => {
+                const d = new Date();
+                d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+                const expires = `expires=${d.toUTCString()}`;
+                document.cookie = `${name}=${value};${expires};path=/`;
+            };
+
+            // Load user data from cookies
+            const loadUserData = () => {
+                const firstName = getCookie('firstName');
+                const lastName = getCookie('lastName');
+                const email = getCookie('email');
+                const phone = getCookie('phone');
+
+                if (firstName) document.getElementById('firstName').value = firstName;
+                if (lastName) document.getElementById('lastName').value = lastName;
+                if (email) document.getElementById('email').value = email;
+                if (phone) document.getElementById('phone').value = phone;
+            };
+
+            // Save user data to cookies on form change
+            const saveUserData = () => {
+                setCookie('firstName', document.getElementById('firstName').value, 30);
+                setCookie('lastName', document.getElementById('lastName').value, 30);
+                setCookie('email', document.getElementById('email').value, 30);
+                setCookie('phone', document.getElementById('phone').value, 30);
+            };
+
+            // Add event listeners to form fields to save data on change
+            document.querySelectorAll('#booking-form input').forEach(input => {
+                input.addEventListener('change', saveUserData);
+            });
+            
+            loadUserData();
+
+            const dateInput = document.getElementById('date-range-input');
+            const calendarPopup = document.getElementById('calendar-popup');
+            const calendarBody = document.getElementById('calendar-body');
+            const guestsSelect = document.getElementById('guests-select');
+            const guestsPopup = document.getElementById('guests-popup');
+            const guestsSummary = document.getElementById('guests-summary');
+            const adultsCountSpan = document.getElementById('adults-count');
+            const kidsCountSpan = document.getElementById('kids-count');
+            const adultsPlusBtn = document.querySelector('.adults-plus');
+            const adultsMinusBtn = document.querySelector('.adults-minus');
+            const kidsPlusBtn = document.querySelector('.kids-plus');
+            const kidsMinusBtn = document.querySelector('.kids-minus');
+            const addToCartBtn = document.getElementById('add-to-cart-btn');
+            const continueBtn = document.getElementById('continue-btn');
+            const optionsSection = document.getElementById('options-section');
+            const formSection = document.getElementById('form-section');
+            const paymentSection = document.getElementById('payment-section');
+            const cartContainer = document.getElementById('cart-container');
+            const bookingForm = document.getElementById('booking-form');
+            const modal = document.getElementById('modal');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+            const paymentAmountDisplay = document.getElementById('payment-amount');
+            
+            // Square elements
+            const paymentFormContainer = document.getElementById('payment-form');
+            const cardContainer = document.getElementById('card-container');
+            const cardButton = document.getElementById('card-button');
+            const paymentStatusContainer = document.getElementById('payment-status-container');
+            const applePayButton = document.getElementById('apple-pay-button');
+            const applePayButtonContainer = document.getElementById('apple-pay-button-container');
+
+
+            // Cart elements
+            const cartMessage = document.getElementById('cart-message');
+            const bookingDatesSummary = document.getElementById('booking-dates-summary');
+            const bookingDetailsSummary = document.getElementById('booking-details-summary');
+            const cartTotalSummary = document.getElementById('cart-total-summary');
+
+            const cartArrivalDate = document.getElementById('cart-arrival-date');
+            const cartDepartureDate = document.getElementById('cart-departure-date');
+            const cartGuestsText = document.getElementById('cart-guests-text');
+            const cartSubtotal = document.getElementById('cart-subtotal');
+            const cartDeposit = document.getElementById('cart-deposit');
+            const cartCleaningFee = document.getElementById('cart-cleaning-fee');
+            const cartTax = document.getElementById('cart-tax');
+            const cartTotal = document.getElementById('cart-total');
+            const cartUpfrontPayment = document.getElementById('cart-upfront-payment');
+            
+            const housePriceDisplay = document.getElementById('house-price-display');
+            
+            let selectedDates = [];
+            let adultsCount = 1;
+            let kidsCount = 0;
+            const HOUSE_PRICE_PER_NIGHT = 550.00;
+            const CLEANING_FEE = 200.00;
+            const SECURITY_DEPOSIT = 500.00;
+            const TAX_RATE = 0.035;
+            
+            const MAX_ADULTS = 6;
+            const MAX_KIDS = 5;
+
+            housePriceDisplay.textContent = `${HOUSE_PRICE_PER_NIGHT.toFixed(2)} C$`;
+
+            // Function to calculate and update the cart
+            const updateCart = () => {
+                const nights = selectedDates.length === 2 ? Math.ceil((selectedDates[1] - selectedDates[0]) / (1000 * 60 * 60 * 24)) : 0;
+                
+                if (nights > 0) {
+                    const subtotal = nights * HOUSE_PRICE_PER_NIGHT;
+                    const tax = (subtotal + CLEANING_FEE + SECURITY_DEPOSIT) * TAX_RATE;
+                    const total = subtotal + CLEANING_FEE + SECURITY_DEPOSIT + tax;
+                    const upfrontPayment = total * 0.50; // 50% deposit logic
+
+                    cartSubtotal.textContent = `${subtotal.toFixed(2)} C$`;
+                    cartDeposit.textContent = `${SECURITY_DEPOSIT.toFixed(2)} C$`;
+                    cartCleaningFee.textContent = `${CLEANING_FEE.toFixed(2)} C$`;
+                    cartTax.textContent = `${tax.toFixed(2)} C$`;
+                    cartTotal.textContent = `${total.toFixed(2)} C$`;
+                    cartUpfrontPayment.textContent = `${upfrontPayment.toFixed(2)} C$`;
+
+                    cartMessage.classList.add('hidden');
+                    bookingDatesSummary.classList.remove('hidden');
+                    bookingDetailsSummary.classList.remove('hidden');
+                    cartTotalSummary.classList.remove('hidden');
+                    continueBtn.disabled = false;
+                } else {
+                    cartMessage.classList.remove('hidden');
+                    bookingDatesSummary.classList.add('hidden');
+                    bookingDetailsSummary.classList.add('hidden');
+                    cartTotalSummary.classList.add('hidden');
+                    continueBtn.disabled = true;
+                }
+            };
+            
+            // --- Calendar Logic ---
+            const today = new Date();
+            let currentMonth = today.getMonth();
+            let currentYear = today.getFullYear();
+            
+            const renderCalendar = (month, year) => {
+                calendarBody.innerHTML = '';
+                const date = new Date(year, month);
+                const firstDay = date.getDay(); // 0 for Sunday
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+                const dayNames = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+                
+                const header = document.createElement('div');
+                header.className = 'flex justify-between items-center mb-4 text-gray-900';
+                header.innerHTML = `
+                    <button class="prev-month text-gray-400 hover:text-gray-600 font-bold p-2 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <span class="font-semibold text-lg">${monthNames[month]} ${year}</span>
+                    <button class="next-month text-gray-400 hover:text-gray-600 font-bold p-2 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10l-3.293-3.293a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                `;
+                calendarBody.appendChild(header);
+
+                const weekHeader = document.createElement('div');
+                weekHeader.className = 'grid grid-cols-7 gap-1 text-center text-sm font-semibold text-gray-400';
+                dayNames.forEach(day => {
+                    const span = document.createElement('span');
+                    span.textContent = day;
+                    weekHeader.appendChild(span);
+                });
+                calendarBody.appendChild(weekHeader);
+
+                const daysGrid = document.createElement('div');
+                daysGrid.className = 'grid grid-cols-7 gap-1 text-center';
+
+                for (let i = 0; i < (firstDay === 0 ? 6 : firstDay - 1); i++) {
+                    daysGrid.innerHTML += '<span></span>';
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayElement = document.createElement('button');
+                    const dayDate = new Date(year, month, day);
+                    dayDate.setHours(0, 0, 0, 0);
+                    
+                    let classes = ['w-full', 'py-2', 'rounded-lg', 'font-medium', 'text-sm', 'transition-colors', 'duration-200', 'calendar-day'];
+                    
+                    if (dayDate < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
+                        classes.push('text-gray-400', 'cursor-not-allowed');
+                        dayElement.disabled = true;
+                    } else if (selectedDates[0] && dayDate.getTime() === selectedDates[0].getTime()) {
+                        classes.push('selected', 'start-date');
+                    } else if (selectedDates[1] && dayDate.getTime() === selectedDates[1].getTime()) {
+                        classes.push('selected', 'end-date');
+                    } else if (selectedDates[0] && selectedDates[1] && dayDate > selectedDates[0] && dayDate < selectedDates[1]) {
+                        classes.push('in-range');
+                    } else {
+                        classes.push('text-gray-900', 'hover:bg-gray-200');
+                    }
+                    
+                    dayElement.className = classes.join(' ');
+                    dayElement.textContent = day;
+                    dayElement.dataset.date = dayDate.toISOString();
+                    daysGrid.appendChild(dayElement);
+                }
+                calendarBody.appendChild(daysGrid);
+
+                calendarBody.querySelector('.prev-month').onclick = () => {
+                    currentMonth--;
+                    if (currentMonth < 0) {
+                        currentMonth = 11;
+                        currentYear--;
+                    }
+                    renderCalendar(currentMonth, currentYear);
+                };
+                
+                calendarBody.querySelector('.next-month').onclick = () => {
+                    currentMonth++;
+                    if (currentMonth > 11) {
+                        currentMonth = 0;
+                        currentYear++;
+                    }
+                    renderCalendar(currentMonth, currentYear);
+                };
+
+                daysGrid.querySelectorAll('button:not(:disabled)').forEach(dayButton => {
+                    dayButton.onclick = (e) => {
+                        const date = new Date(e.target.dataset.date);
+                        date.setHours(0, 0, 0, 0);
+                        
+                        if (selectedDates.length === 0) {
+                            selectedDates.push(date);
+                        } else if (selectedDates.length === 1) {
+                            if (date.getTime() === selectedDates[0].getTime()) {
+                                selectedDates = [];
+                            } else {
+                                selectedDates.push(date);
+                                selectedDates.sort((a, b) => a - b);
+                            }
+                        } else {
+                            selectedDates = [date];
+                        }
+                        renderCalendar(currentMonth, currentYear);
+                        updateDateInput();
+                        updateCart();
+                    };
+                });
+            };
+
+            const updateDateInput = () => {
+                if (selectedDates.length === 2) {
+                    const start = selectedDates[0].toLocaleDateString('fr-FR');
+                    const end = selectedDates[1].toLocaleDateString('fr-FR');
+                    dateInput.value = `${start} - ${end}`;
+                    cartArrivalDate.textContent = start;
+                    cartDepartureDate.textContent = end;
+                    addToCartBtn.disabled = false;
+                } else {
+                    dateInput.value = '';
+                    addToCartBtn.disabled = true;
+                }
+            };
+            
+            // --- Guest Selection Logic ---
+            const updateGuestsSummary = () => {
+                let text = `${adultsCount} adulte${adultsCount > 1 ? 's' : ''}`;
+                if (kidsCount > 0) {
+                    text += `, ${kidsCount} enfant${kidsCount > 1 ? 's' : ''}`;
+                }
+                guestsSummary.textContent = text;
+                cartGuestsText.textContent = text;
+            };
+
+            adultsPlusBtn.addEventListener('click', () => {
+                if (adultsCount < MAX_ADULTS) {
+                    adultsCount++;
+                    adultsCountSpan.textContent = adultsCount;
+                    updateGuestsSummary();
+                }
+            });
+            adultsMinusBtn.addEventListener('click', () => {
+                if (adultsCount > 1) {
+                    adultsCount--;
+                    adultsCountSpan.textContent = adultsCount;
+                    updateGuestsSummary();
+                }
+            });
+            kidsPlusBtn.addEventListener('click', () => {
+                if (kidsCount < MAX_KIDS) {
+                    kidsCount++;
+                    kidsCountSpan.textContent = kidsCount;
+                    updateGuestsSummary();
+                }
+            });
+            kidsMinusBtn.addEventListener('click', () => {
+                if (kidsCount > 0) {
+                    kidsCount--;
+                    kidsCountSpan.textContent = kidsCount;
+                    updateGuestsSummary();
+                }
+            });
+
+            // --- Event Listeners ---
+            dateInput.addEventListener('click', () => {
+                calendarPopup.classList.toggle('hidden');
+                guestsPopup.classList.add('hidden');
+            });
+
+            guestsSelect.addEventListener('click', () => {
+                guestsPopup.classList.toggle('hidden');
+                calendarPopup.classList.add('hidden');
+            });
+            
+            addToCartBtn.addEventListener('click', () => {
+                optionsSection.classList.remove('visible');
+                optionsSection.classList.add('invisible');
+                formSection.classList.remove('invisible');
+                formSection.classList.add('visible');
+            });
+
+            continueBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                optionsSection.classList.remove('visible');
+                optionsSection.classList.add('invisible');
+                formSection.classList.remove('invisible');
+                formSection.classList.add('visible');
+                
+                // Hide the continue button
+                continueBtn.classList.add('hidden');
+                
+                const formOffset = formSection.offsetTop - 20;
+                window.scrollTo({
+                    top: formOffset,
+                    behavior: 'smooth'
+                });
+            });
+
+            // Handle form submission to show payment page
+            bookingForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                formSection.classList.remove('visible');
+                formSection.classList.add('invisible');
+                paymentSection.classList.remove('invisible');
+                paymentSection.classList.add('visible');
+
+                // Update the payment amount display
+                const upfrontPayment = calculateUpfrontPayment().toFixed(2);
+                paymentAmountDisplay.textContent = `${upfrontPayment} C$`;
+                
+                // Initialize Square payments on the payment page
+                initializeSquarePayments();
+            });
+            
+            // Function to calculate upfront payment
+            const calculateUpfrontPayment = () => {
+                const nights = selectedDates.length === 2 ? Math.ceil((selectedDates[1] - selectedDates[0]) / (1000 * 60 * 60 * 24)) : 0;
+                if (nights > 0) {
+                    const subtotal = nights * HOUSE_PRICE_PER_NIGHT;
+                    const tax = (subtotal + CLEANING_FEE + SECURITY_DEPOSIT) * TAX_RATE;
+                    const total = subtotal + CLEANING_FEE + SECURITY_DEPOSIT + tax;
+                    return total * 0.50; // 50% deposit logic
+                }
+                return 0;
+            };
+
+            // --- Square Payments Logic ---
+            async function initializeSquarePayments() {
+                try {
+                    const payments = Square.payments('sandbox-sq0idb-RT3u-HhCpNdbMiGg5aXuVg', 'TC4Z3ZEBKRXRH');
+                    const card = await payments.card();
+                    await card.attach('#card-container');
+
+                    cardButton.addEventListener('click', async () => {
+                        try {
+                            const result = await card.tokenize();
+                            if (result.status === 'OK') {
+                                console.log(`Payment token is ${result.token}`);
+                                modal.querySelector('p').innerHTML = `Paiement a été complété. <br>Merci pour votre réservation!`;
+                                modal.classList.remove('hidden');
+                                paymentStatusContainer.classList.add('hidden');
+                            } else {
+                                let errorMessage = `Tokenization failed with status: ${result.status}`;
+                                if (result.errors) {
+                                    errorMessage += ` and errors: ${JSON.stringify(result.errors)}`;
+                                }
+                                throw new Error(errorMessage);
+                            }
+                        } catch (e) {
+                            console.error(e);
+                            paymentStatusContainer.innerHTML = "Échec du paiement. Veuillez réessayer.";
+                            paymentStatusContainer.classList.remove('hidden');
+                        }
+                    });
+                } catch (e) {
+                    console.error("Failed to initialize Square Payments:", e);
+                    paymentStatusContainer.innerHTML = "Impossible d'initialiser le formulaire de paiement. Veuillez réessayer.";
+                    paymentStatusContainer.classList.remove('hidden');
+                }
+            }
+
+            modalCloseBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+
+            // Initial render
+            renderCalendar(currentMonth, currentYear);
+            updateGuestsSummary();
+            updateCart();
+            
+            // This is the added line to hide the loader after everything is ready
+            toggleLoader(false);
+        });
+    </script>
+</body>
+</html>
